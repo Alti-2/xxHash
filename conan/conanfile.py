@@ -51,4 +51,6 @@ class xxHash(ConanFile):
         self.copy("*.so", src=os.path.join(self.build_folder, "lib"), keep_path=False)
         self.copy("*.lib", src=os.path.join(self.build_folder, "lib"), keep_path=False)
 
-        
+    def package_info(self):
+        self.cpp_info.includedirs = [""]
+        self.cpp_info.libs.append("libxxhash.a")
