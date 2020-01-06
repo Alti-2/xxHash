@@ -10,7 +10,7 @@ class xxHash(ConanFile):
     scm = {
         "type": "git",
         "url": "https://github.com/Alti-2/xxHash.git",
-        "revision": "v0.6.5"
+        "revision": "conan_cmake"
     }
     build_requires = "ninja-build/[>=1.9.0]"
 
