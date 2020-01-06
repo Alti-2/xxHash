@@ -5,6 +5,19 @@
 #
 # For details, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
+if (${CMAKE_CROSS_COMPILING})
+# If cross compiling, skip compiler checks.
+set(CMAKE_C_COMPILER_WORKS 1)
+set(CMAKE_CXX_COMPILER_WORKS 1)
+endif()
+
+# If using conan dependency manager, include it here.
+include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+if (${CONAN_PACKAGE_NAME} STREQUAL "xxHash")
+set(CMAKE_C_COMPILER_VERSION ${CONAN_COMPILER_VERSION})
+conan_basic_setup()
+endif()
+
 set(XXHASH_DIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
 file(STRINGS "${XXHASH_DIR}/xxhash.h" XXHASH_VERSION_MAJOR REGEX "^#define XXH_VERSION_MAJOR +([0-9]+) *$")
@@ -61,9 +74,18 @@ set_target_properties(xxhash PROPERTIES
   SOVERSION "${XXHASH_VERSION_STRING}"
   VERSION "${XXHASH_VERSION_STRING}")
 
+if (${CONAN_PACKAGE_NAME} STREQUAL "xxHash")
+foreach (include_dir in ${CONAN_INCLUDE_DIRS})
+ target_include_directories(xxhash PUBLIC ${include_dir})
+endforeach()
+endif()
+
 # xxhsum
-add_executable(xxhsum "${XXHASH_DIR}/xxhsum.c")
-target_link_libraries(xxhsum xxhash)
+if (BUILD_XXHSUM)
+    message("Error")
+    add_executable(xxhsum "${XXHASH_DIR}/xxhsum.c")
+    target_link_libraries(xxhsum xxhash)
+endif()
 
 # Extra warning flags
 include (CheckCCompilerFlag)
@@ -85,11 +107,13 @@ foreach (flag
   unset(flag_to_test)
 endforeach (flag)
 
-if(NOT XXHASH_BUNDLED_MODE)
+if(NOT ${XXHASH_BUNDLED_MODE})
   include(GNUInstallDirs)
 
-  install(TARGETS xxhsum
-    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+  if (${BUILD_XXHSUM})
+    install(TARGETS xxhsum
+      RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+  endif()
   install(TARGETS xxhash
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
@@ -97,4 +121,10 @@ if(NOT XXHASH_BUNDLED_MODE)
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
   install(FILES "${XXHASH_DIR}/xxhsum.1"
     DESTINATION "${CMAKE_INSTALL_MANDIR}/man1")
-endif(NOT XXHASH_BUNDLED_MODE)
+endif(NOT ${XXHASH_BUNDLED_MODE})
+
+if (${CMAKE_CROSS_COMPILING})
+# Remove incompatible flags when cross compiling.
+string(REPLACE "-MT" "" CMAKE_DEPFILE_FLAGS_C ${CMAKE_DEPFILE_FLAGS_C})
+string(REPLACE "-c" "" CMAKE_C_COMPILE_OBJECT ${CMAKE_C_COMPILE_OBJECT})
+endif()
