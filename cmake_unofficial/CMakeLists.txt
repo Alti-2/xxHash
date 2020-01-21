@@ -124,7 +124,22 @@ if(NOT ${XXHASH_BUNDLED_MODE})
 endif(NOT ${XXHASH_BUNDLED_MODE})
 
 if (${CMAKE_CROSS_COMPILING})
-# Remove incompatible flags when cross compiling.
-string(REPLACE "-MT" "" CMAKE_DEPFILE_FLAGS_C ${CMAKE_DEPFILE_FLAGS_C})
-string(REPLACE "-c" "" CMAKE_C_COMPILE_OBJECT ${CMAKE_C_COMPILE_OBJECT})
+if (CONAN_SES-ARM_ROOT)
+	set(CMAKE_ASM_COMPILER_WORKS 1)
+	set(CMAKE_DEPFILE_FLAGS_C "-MD <DEPFILE> -MQ <OBJECT>")
+	set(BUILD_DIR "CMakeFiles/${CMAKE_PROJECT_NAME}.dir")
+	string(REPLACE "  -c" "" CMAKE_C_COMPILE_OBJECT ${CMAKE_C_COMPILE_OBJECT})
+	string(REPLACE "<OBJECT>" "<OBJECT>.asm" CMAKE_C_COMPILE_OBJECT ${CMAKE_C_COMPILE_OBJECT})
+	
+	set(CMAKE_ASM_COMPILER "${CONAN_SES-ARM_ROOT}/toolchain/as.exe")
+	set(CMAKE_ASM_FLAGS --traditional-format -mcpu=cortex-m4 -mlittle-endian -mfloat-abi=hard -mfpu=fpv4-sp-d16)
+	
+	enable_language(ASM)
+
+    set(SRCS_C xxhash.c)
+	foreach(SRC_C ${SRCS_C})
+		set(CMAKE_ASM_COMPILE_COMMAND "${CMAKE_ASM_COMPILER}" ${CMAKE_ASM_FLAGS} ${BUILD_DIR}/${SRC_C}.obj.asm -o ${BUILD_DIR}/${SRC_C}.obj)
+		add_custom_command(TARGET xxhash PRE_LINK COMMAND ${CMAKE_ASM_COMPILE_COMMAND})
+	endforeach()
+endif()
 endif()

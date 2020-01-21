@@ -31,7 +31,7 @@ class xxHash(ConanFile):
                 # If we're cross compiling, we definitely do not want to install.
                 cmake.definitions["XXHASH_BUNDLED_MODE"] = "ON"
                 # Cross compiling to an mcu means the xxhsum project is not compatible.
-                cmake_defines = dict({"BUILD_XXHSUM": False, "BUILD_SHARED_LIBS": False})
+                cmake_defines = dict({"BUILD_XXHSUM": False, "BUILD_SHARED_LIBS": False, "XXH_NO_LONG_LONG": True})
                 cmake.definitions["CMAKE_C_ABI_COMPILED"] = self.settings.compiler.abi
                 cmake.definitions["CMAKE_CROSS_COMPILING"] = 1
                 cmake.definitions["CONAN_DISABLE_CHECK_COMPILER"] = 1
