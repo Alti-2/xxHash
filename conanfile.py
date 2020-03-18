@@ -12,10 +12,15 @@ class xxHash(ConanFile):
         "url": "https://github.com/Alti-2/xxHash.git",
         "revision": "conan_cmake"
     }
+    options = {"long_long_support": [True, False], "bundled_mode": [True, False]}
+    default_options = {"long_long_support": False, "bundled_mode": True}
     generators = "cmake", "compiler_args", "visual_studio"
     build_requires = "ninja/[>=1.9.0]", "cmake/[>=3.1.2]", "unity/[>=2.5.0]",
     python_requires = "SES-ARM/[>=4]", "conan-helper/[>=0.0.1]",
     python_requires_extend = "conan-helper.Importer", "conan-helper.DependencyManager", "conan-helper.ConfigurationManager", "conan-helper.ArchiveHelper"
+    _source_list = ["xxhash.c"]
+    _header_list = ["xxhash.h"]
+    _compile_defines = {"XXH_NO_LONG_LONG": 1, }
 
     def build(self):
         cmake = CMake(self)
@@ -28,7 +33,11 @@ class xxHash(ConanFile):
         else:
             if self.should_configure:
                 cmake.verbose = True
-                cmake.definitions["CMAKE_MAKE_PROGRAM"] = os.path.join(self.deps_cpp_info["ninja"].rootpath, "ninja")
+                
+                if self.settings.compiler != "Visual Studio":
+                    print("Using ninja.")
+                    cmake.definitions["CMAKE_MAKE_PROGRAM"] = "ninja"
+
                 cmake_defines = None
 
                 if self.settings.target == "mcu":
@@ -41,9 +50,12 @@ class xxHash(ConanFile):
                     cmake.definitions["CMAKE_CROSS_COMPILING"] = 1
                     cmake.definitions["CONAN_DISABLE_CHECK_COMPILER"] = 1
                     
-                if str(self.settings.arch).find("arm") != -1:
-                    cmake.definitions["CMAKE_SYSTEM_PROCESSOR"] = "arm"
+                    if str(self.settings.arch).find("arm") != -1:
+                        cmake.definitions["CMAKE_SYSTEM_PROCESSOR"] = "arm"
                 
+                cmake.definitions["XXHASH_BUNDLED_MODE"] = "ON"
+                # Cross compiling to an mcu means the xxhsum project is not compatible.
+                cmake_defines = dict({"BUILD_XXHSUM": 0, "BUILD_SHARED_LIBS": 0, "XXH_NO_LONG_LONG": 1})
                 cmake.configure(source_dir="cmake_unofficial", defs=cmake_defines)
         
             if self.should_build:
