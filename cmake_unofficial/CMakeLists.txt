@@ -12,11 +12,13 @@ set(CMAKE_CXX_COMPILER_WORKS 1)
 endif()
 
 # If using conan dependency manager, include it here.
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-if (${CONAN_PACKAGE_NAME} STREQUAL "xxHash")
-set(CMAKE_C_COMPILER_VERSION ${CONAN_COMPILER_VERSION})
-conan_basic_setup()
-endif()
+if (EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
+    if (${CONAN_PACKAGE_NAME} STREQUAL "xxHash")
+        set(CMAKE_C_COMPILER_VERSION ${CONAN_COMPILER_VERSION})
+        conan_basic_setup()
+    endif(${CONAN_PACKAGE_NAME} STREQUAL "xxHash")
+endif(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 
 set(XXHASH_DIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
@@ -122,24 +124,3 @@ if(NOT ${XXHASH_BUNDLED_MODE})
   install(FILES "${XXHASH_DIR}/xxhsum.1"
     DESTINATION "${CMAKE_INSTALL_MANDIR}/man1")
 endif(NOT ${XXHASH_BUNDLED_MODE})
-
-if (${CMAKE_CROSS_COMPILING})
-if (CONAN_SES-ARM_ROOT)
-	set(CMAKE_ASM_COMPILER_WORKS 1)
-	set(CMAKE_DEPFILE_FLAGS_C "-MD <DEPFILE> -MQ <OBJECT>")
-	set(BUILD_DIR "CMakeFiles/${CMAKE_PROJECT_NAME}.dir")
-	string(REPLACE "  -c" "" CMAKE_C_COMPILE_OBJECT ${CMAKE_C_COMPILE_OBJECT})
-	string(REPLACE "<OBJECT>" "<OBJECT>.asm" CMAKE_C_COMPILE_OBJECT ${CMAKE_C_COMPILE_OBJECT})
-	
-	set(CMAKE_ASM_COMPILER "${CONAN_SES-ARM_ROOT}/toolchain/as.exe")
-	set(CMAKE_ASM_FLAGS --traditional-format -mcpu=cortex-m4 -mlittle-endian -mfloat-abi=hard -mfpu=fpv4-sp-d16)
-	
-	enable_language(ASM)
-
-    set(SRCS_C xxhash.c)
-	foreach(SRC_C ${SRCS_C})
-		set(CMAKE_ASM_COMPILE_COMMAND "${CMAKE_ASM_COMPILER}" ${CMAKE_ASM_FLAGS} ${BUILD_DIR}/${SRC_C}.obj.asm -o ${BUILD_DIR}/${SRC_C}.obj)
-		add_custom_command(TARGET xxhash PRE_LINK COMMAND ${CMAKE_ASM_COMPILE_COMMAND})
-	endforeach()
-endif()
-endif()
